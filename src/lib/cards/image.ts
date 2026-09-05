@@ -37,6 +37,8 @@ export async function fileToDataUrl(
   maxEdge: number,
   preferPng: boolean,
 ): Promise<string> {
+  const maxBytes = 12 * 1024 * 1024;
+  if (file.size > maxBytes) throw new Error("Image is too large (12 MB maximum)");
   if (!file.type.startsWith("image/") && !file.name.match(/\.(png|jpe?g|gif|webp|svg)$/i)) {
     throw new Error("Not an image");
   }

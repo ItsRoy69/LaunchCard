@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { SIZES, slugify } from "@/lib/cards/catalog";
 import { ensureCardFonts } from "@/lib/cards/fonts";
 import { cardToBlob, downloadBlob, renderCard } from "@/lib/cards/render";
+import { zipBlobs } from "@/lib/cards/zip";
 import { selectDoc, useCardStore } from "@/lib/cards/store";
 import { Button } from "@/components/ui/button";
 import { CanvasStage } from "./canvas-stage";
@@ -81,12 +82,13 @@ export function Studio() {
   const onPack = async () => {
     setBusy("pack");
     try {
+      const files = [];
       for (const size of SIZES) {
-        const blob = await exportOne(size.id);
-        downloadBlob(blob, filename(size.id));
-        await new Promise((r) => setTimeout(r, 220));
+        files.push({ name: filename(size.id), blob: await exportOne(size.id) });
       }
-      toast.success("All six sizes saved");
+      const pack = await zipBlobs(files);
+      downloadBlob(pack, `${slugify(doc.name)}-launch-assets.zip`);
+      toast.success("Launch asset pack saved");
     } catch {
       toast.error("Pack export failed");
     } finally {
@@ -103,7 +105,7 @@ export function Studio() {
             <p className="font-display text-lg leading-tight tracking-tight text-fg">
               LaunchCard
             </p>
-            <p className="truncate text-xs text-subtle">On-device. No APIs. No cloud.</p>
+            <p className="truncate text-xs text-subtle">On-device drafts. No account required.</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">

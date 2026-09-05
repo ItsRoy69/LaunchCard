@@ -8,21 +8,24 @@ import { selectDoc, useCardStore } from "@/lib/cards/store";
 export function CanvasStage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
+  const renderTokenRef = useRef(0);
   const doc = useCardStore(useShallow(selectDoc));
   const size = SIZES.find((s) => s.id === doc.sizeId) ?? SIZES[0];
 
   useEffect(() => {
-    let cancelled = false;
+    const token = ++renderTokenRef.current;
     const canvas = canvasRef.current;
     if (!canvas) return;
     (async () => {
       await ensureCardFonts();
-      if (cancelled || !canvasRef.current) return;
-      await renderCard(canvasRef.current, doc);
+      if (token !== renderTokenRef.current) return;
+      const next = document.createElement("canvas");
+      await renderCard(next, doc);
+      if (token !== renderTokenRef.current || !canvasRef.current) return;
+      canvas.width = next.width;
+      canvas.height = next.height;
+      canvas.getContext("2d")?.drawImage(next, 0, 0);
     })();
-    return () => {
-      cancelled = true;
-    };
   }, [doc]);
 
   useEffect(() => {

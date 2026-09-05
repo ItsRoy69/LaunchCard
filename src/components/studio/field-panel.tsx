@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent } from "react";
 import { ImagePlus, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import { PALETTES, PRESETS } from "@/lib/cards/catalog";
 import { fileToDataUrl } from "@/lib/cards/image";
 import { useCardStore } from "@/lib/cards/store";
@@ -64,6 +65,7 @@ function DropSlot({
           "relative flex h-24 w-full items-center justify-center overflow-hidden rounded-md border border-dashed transition-[border-color,background-color] duration-quick",
           over ? "border-primary bg-surface" : "border-border bg-well hover:border-border-strong",
         )}
+        aria-label={label + ": " + (value ? "replace image" : hint)}
       >
         {value ? (
           <img src={value} alt="" className="h-full w-full object-contain" />
@@ -78,6 +80,7 @@ function DropSlot({
         ref={inputRef}
         type="file"
         accept="image/*"
+        aria-label={label}
         className="sr-only"
         onChange={(e) => {
           take(e.target.files?.[0]);
@@ -231,8 +234,12 @@ export function FieldPanel() {
           hint="Drop logo"
           value={logoDataUrl}
           onFile={async (file) => {
-            const data = await fileToDataUrl(file, 256, true);
-            patch({ logoDataUrl: data });
+            try {
+              const data = await fileToDataUrl(file, 256, true);
+              patch({ logoDataUrl: data });
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Could not add logo");
+            }
           }}
           onClear={() => patch({ logoDataUrl: null })}
         />
@@ -241,8 +248,12 @@ export function FieldPanel() {
           hint="Drop screenshot"
           value={shotDataUrl}
           onFile={async (file) => {
-            const data = await fileToDataUrl(file, 1600, false);
-            patch({ shotDataUrl: data });
+            try {
+              const data = await fileToDataUrl(file, 1600, false);
+              patch({ shotDataUrl: data });
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Could not add screenshot");
+            }
           }}
           onClear={() => patch({ shotDataUrl: null })}
         />
@@ -263,6 +274,7 @@ export function FieldPanel() {
                   on ? "border-primary" : "border-border hover:border-border-strong",
                 )}
                 aria-label={p.label}
+                aria-pressed={on}
               >
                 <span className="flex-1" style={{ background: p.bg }} />
                 <span className="flex h-5 items-center justify-between px-1.5 text-xs text-muted">

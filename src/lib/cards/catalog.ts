@@ -5,6 +5,7 @@ export const SIZES: CardSize[] = [
   { id: "post", label: "X Post", w: 1600, h: 900, hint: "16:9 in-feed" },
   { id: "header", label: "X Header", w: 1500, h: 500, hint: "Profile banner" },
   { id: "square", label: "Square", w: 1080, h: 1080, hint: "Carousel, avatar" },
+  { id: "instagram", label: "Instagram", w: 1080, h: 1350, hint: "4:5 feed post" },
   { id: "ph", label: "Product Hunt", w: 1270, h: 760, hint: "Gallery image" },
   { id: "story", label: "Story", w: 1080, h: 1920, hint: "9:16 vertical" },
 ];
@@ -89,7 +90,7 @@ export const PRESETS: { id: string; label: string; doc: Partial<CardDoc> }[] = [
       stats: [
         { id: "s1", label: "APIs", value: "0" },
         { id: "s2", label: "templates", value: "8" },
-        { id: "s3", label: "sizes", value: "6" },
+        { id: "s3", label: "sizes", value: "7" },
       ],
     },
   },
@@ -134,7 +135,7 @@ export function defaultDoc(): CardDoc {
     stats: [
       { id: "s1", label: "APIs", value: "0" },
       { id: "s2", label: "templates", value: "8" },
-      { id: "s3", label: "sizes", value: "6" },
+      { id: "s3", label: "sizes", value: "7" },
     ],
     logoDataUrl: null,
     shotDataUrl: null,
