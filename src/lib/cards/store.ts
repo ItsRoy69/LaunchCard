@@ -64,19 +64,31 @@ export const useCardStore = create<Store>()(
         set({ ...defaultDoc() });
       },
       hydrateAssets: async () => {
+        // Prefer IDB; fall back to any legacy images still sitting in the persist snapshot.
         const [logo, shot] = await Promise.all([getAsset("logo"), getAsset("shot")]);
         const cur = get();
-        // Only apply if still empty (avoid clobbering a concurrent upload).
         const next: Partial<CardDoc> = {};
-        if (!cur.logoDataUrl && logo) next.logoDataUrl = logo;
-        if (!cur.shotDataUrl && shot) next.shotDataUrl = shot;
+
+        if (!cur.logoDataUrl) {
+          if (logo) next.logoDataUrl = logo;
+        } else {
+          // Legacy LS image → IDB, then it will stop being re-written to LS.
+          void putAsset("logo", cur.logoDataUrl);
+        }
+
+        if (!cur.shotDataUrl) {
+          if (shot) next.shotDataUrl = shot;
+        } else {
+          void putAsset("shot", cur.shotDataUrl);
+        }
+
         if (Object.keys(next).length) set(next);
       },
     }),
     {
       name: "launchcard-v1",
       skipHydration: true,
-      // Keep localStorage small — heavy images live in IndexedDB.
+      // Text-only in localStorage. Images live in IndexedDB.
       partialize: (s) => ({
         name: s.name,
         tagline: s.tagline,
@@ -86,17 +98,7 @@ export const useCardStore = create<Store>()(
         templateId: s.templateId,
         paletteId: s.paletteId,
         sizeId: s.sizeId,
-        // Migrate: if old localStorage still has images, keep them once;
-        // new writes go to IDB only.
-        logoDataUrl: s.logoDataUrl,
-        shotDataUrl: s.shotDataUrl,
       }),
-      onRehydrateStorage: () => (state) => {
-        if (!state) return;
-        // Move any legacy localStorage images into IDB, then drop them from LS on next save.
-        if (state.logoDataUrl) void putAsset("logo", state.logoDataUrl);
-        if (state.shotDataUrl) void putAsset("shot", state.shotDataUrl);
-      },
     },
   ),
 );
