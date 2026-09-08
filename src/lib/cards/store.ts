@@ -11,7 +11,7 @@ type Actions = {
   removeStat: (id: string) => void;
   loadPreset: (id: string) => void;
   reset: () => void;
-  /** Load logo/shot from IndexedDB after text fields rehydrate. */
+  /** Load logo/shot from IndexedDB (and migrate legacy LS images once). */
   hydrateAssets: () => Promise<void>;
 };
 
@@ -28,6 +28,27 @@ function newStat(): Stat {
 function persistImages(partial: Partial<CardDoc>) {
   if ("logoDataUrl" in partial) void putAsset("logo", partial.logoDataUrl ?? null);
   if ("shotDataUrl" in partial) void putAsset("shot", partial.shotDataUrl ?? null);
+}
+
+/** Read legacy images that were previously stored inside the zustand LS blob. */
+function readLegacyImagesFromLocalStorage(): {
+  logo: string | null;
+  shot: string | null;
+} {
+  try {
+    const raw = localStorage.getItem("launchcard-v1");
+    if (!raw) return { logo: null, shot: null };
+    const parsed = JSON.parse(raw) as {
+      state?: { logoDataUrl?: string | null; shotDataUrl?: string | null };
+    };
+    const logo =
+      typeof parsed?.state?.logoDataUrl === "string" ? parsed.state.logoDataUrl : null;
+    const shot =
+      typeof parsed?.state?.shotDataUrl === "string" ? parsed.state.shotDataUrl : null;
+    return { logo, shot };
+  } catch {
+    return { logo: null, shot: null };
+  }
 }
 
 export const useCardStore = create<Store>()(
@@ -64,24 +85,20 @@ export const useCardStore = create<Store>()(
         set({ ...defaultDoc() });
       },
       hydrateAssets: async () => {
-        // Prefer IDB; fall back to any legacy images still sitting in the persist snapshot.
-        const [logo, shot] = await Promise.all([getAsset("logo"), getAsset("shot")]);
+        const [idbLogo, idbShot] = await Promise.all([getAsset("logo"), getAsset("shot")]);
+        const legacy = readLegacyImagesFromLocalStorage();
+
+        // Prefer IDB; fall back to legacy localStorage images once.
+        const logo = idbLogo ?? legacy.logo;
+        const shot = idbShot ?? legacy.shot;
+
+        if (logo && !idbLogo) void putAsset("logo", logo);
+        if (shot && !idbShot) void putAsset("shot", shot);
+
         const cur = get();
         const next: Partial<CardDoc> = {};
-
-        if (!cur.logoDataUrl) {
-          if (logo) next.logoDataUrl = logo;
-        } else {
-          // Legacy LS image → IDB, then it will stop being re-written to LS.
-          void putAsset("logo", cur.logoDataUrl);
-        }
-
-        if (!cur.shotDataUrl) {
-          if (shot) next.shotDataUrl = shot;
-        } else {
-          void putAsset("shot", cur.shotDataUrl);
-        }
-
+        if (!cur.logoDataUrl && logo) next.logoDataUrl = logo;
+        if (!cur.shotDataUrl && shot) next.shotDataUrl = shot;
         if (Object.keys(next).length) set(next);
       },
     }),
