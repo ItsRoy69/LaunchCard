@@ -171,7 +171,8 @@ export function Studio() {
     setBusy("share");
     try {
       const url = buildShareUrl(doc);
-      if (typeof history !== "undefined") {
+      // Only mirror into the address bar when the hash stays reasonably short.
+      if (typeof history !== "undefined" && url.length <= SHARE_URL_SOFT_LIMIT) {
         history.replaceState(null, "", url);
       }
       if (navigator.clipboard?.writeText) {
@@ -179,7 +180,7 @@ export function Studio() {
         const long = url.length > SHARE_URL_SOFT_LIMIT;
         toast.success("Share link copied", {
           description: long
-            ? `Link is ${url.length} chars — fine in most apps, but shorten the tagline if a messenger rejects it.`
+            ? `Link is ${url.length} chars — shorten the tagline if a messenger rejects it.`
             : "Text and layout only — images stay on each device.",
         });
       } else {
@@ -294,9 +295,26 @@ export function Studio() {
             {busy === "copy" ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
             Copy
           </Button>
+          {/* Pack: icon on small screens, labeled from md up */}
           <Button
             type="button"
             variant="secondary"
+            size="icon-sm"
+            onClick={onPack}
+            disabled={busy !== null}
+            className="md:hidden"
+            aria-label="Export asset pack"
+            title="Export all sizes as ZIP"
+          >
+            {busy === "pack" ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Layers className="size-3.5" />
+            )}
+          </Button>
+          <Button
+            type="button"
+eta variant="secondary"
             size="sm"
             onClick={onPack}
             disabled={busy !== null}
