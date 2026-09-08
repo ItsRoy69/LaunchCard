@@ -53,7 +53,7 @@ export function Studio() {
       downloadBlob(blob, filename());
       toast.success("PNG saved");
     } catch {
-      toast.error("Could not export");
+      toast.error("Could not export PNG");
     } finally {
       setBusy(null);
     }
@@ -65,15 +65,39 @@ export function Studio() {
       await ensureCardFonts();
       const canvas = document.createElement("canvas");
       await renderCard(canvas, doc);
-      const item = new ClipboardItem({
-        "image/png": new Promise<Blob>((resolve, reject) => {
-          canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("blob"))), "image/png");
-        }),
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/png"),
+      );
+      if (!blob) throw new Error("blob");
+
+      // Prefer modern ClipboardItem when available.
+      if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+        try {
+          const item = new ClipboardItem({ "image/png": blob });
+          await navigator.clipboard.write([item]);
+          toast.success("Copied to clipboard");
+          return;
+        } catch {
+          // Fall through to download fallback.
+        }
+      }
+
+      // Fallback: download the PNG and tell the user why.
+      downloadBlob(blob, filename());
+      toast.message("Clipboard blocked", {
+        description: "PNG downloaded instead. You can paste from Downloads.",
       });
-      await navigator.clipboard.write([item]);
-      toast.success("Copied to clipboard");
     } catch {
-      toast.error("Clipboard blocked — download instead");
+      try {
+        const blob = await exportOne();
+        downloadBlob(blob, filename());
+        toast.message("Clipboard blocked", {
+          description: "PNG downloaded instead.",
+        });
+      } catch {
+        toast.error("Could not copy or download");
+      }
     } finally {
       setBusy(null);
     }
