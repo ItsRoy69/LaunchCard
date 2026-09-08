@@ -106,6 +106,19 @@ export function FieldPanel() {
   const removeStat = useCardStore((s) => s.removeStat);
   const loadPreset = useCardStore((s) => s.loadPreset);
   const reset = useCardStore((s) => s.reset);
+  const clearAllData = useCardStore((s) => s.clearAllData);
+
+  const onClearData = () => {
+    const ok = window.confirm(
+      "Clear all local LaunchCard data? This removes drafts, logos, and screenshots from this browser.",
+    );
+    if (!ok) return;
+    clearAllData();
+    if (typeof history !== "undefined") {
+      history.replaceState(null, "", window.location.pathname);
+    }
+    toast.success("Local data cleared");
+  };
 
   return (
     <aside className="studio-scroll flex w-full shrink-0 flex-col gap-6 overflow-y-auto border-t border-border bg-bg p-4 lg:h-full lg:w-80 lg:border-r lg:border-t-0 lg:p-5">
@@ -259,7 +272,7 @@ export function FieldPanel() {
         />
       </section>
 
-      <section className="space-y-3 pb-4">
+      <section className="space-y-3">
         <p className="text-xs font-medium tracking-wide text-muted">Ink</p>
         <div className="grid grid-cols-3 gap-2">
           {PALETTES.map((p) => {
@@ -285,6 +298,24 @@ export function FieldPanel() {
             );
           })}
         </div>
+      </section>
+
+      <Separator />
+
+      <section className="space-y-3 pb-4">
+        <p className="text-xs font-medium tracking-wide text-muted">Privacy</p>
+        <p className="text-xs leading-relaxed text-subtle">
+          Drafts stay on this device. Nothing is uploaded. Share links carry text and layout only —
+          logos and screenshots never leave your browser.
+        </p>
+        <button
+          type="button"
+          onClick={onClearData}
+          className="inline-flex h-8 items-center gap-1.5 text-xs text-muted hover:text-fg"
+        >
+          <Trash2 className="size-3.5" />
+          Clear local data
+        </button>
       </section>
     </aside>
   );

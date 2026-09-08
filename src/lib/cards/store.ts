@@ -13,11 +13,14 @@ type Actions = {
   removeStat: (id: string) => void;
   loadPreset: (id: string) => void;
   reset: () => void;
+  /** Apply a shared draft (from URL hash). Clears images. */
+  applyShare: (partial: Partial<CardDoc>) => void;
+  /** Wipe localStorage + IndexedDB and reset to defaults. */
+  clearAllData: () => void;
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
-  /** Load logo/shot from IndexedDB (and migrate legacy LS images once). */
   hydrateAssets: () => Promise<void>;
 };
 
@@ -76,7 +79,6 @@ function readLegacyImagesFromLocalStorage(): {
   }
 }
 
-/** Coalesce rapid text edits into one history entry. */
 let textHistoryTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingTextSnapshot: CardDoc | null = null;
 
@@ -205,6 +207,31 @@ export const useCardStore = create<Store>()(
           pushPast(snapshotDoc(get()));
           void clearAssets();
           set({ ...defaultDoc() });
+        },
+
+        applyShare: (partial) => {
+          commitTextHistory();
+          pushPast(snapshotDoc(get()));
+          void putAsset("logo", null);
+          void putAsset("shot", null);
+          set({
+            ...partial,
+            logoDataUrl: null,
+            shotDataUrl: null,
+            past: get().past,
+            future: [],
+          });
+        },
+
+        clearAllData: () => {
+          commitTextHistory();
+          void clearAssets();
+          try {
+            localStorage.removeItem("launchcard-v1");
+          } catch {
+            // ignore
+          }
+          set({ ...defaultDoc(), past: [], future: [] });
         },
 
         undo: () => {

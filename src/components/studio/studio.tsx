@@ -1,10 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { Check, Copy, Download, Layers, Loader2, Redo2, Undo2 } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Download,
+  Layers,
+  Link2,
+  Loader2,
+  Redo2,
+  Undo2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { SIZES, slugify } from "@/lib/cards/catalog";
 import { ensureCardFonts } from "@/lib/cards/fonts";
 import { cardToBlob, downloadBlob, renderCard } from "@/lib/cards/render";
+import { buildShareUrl, readShareFromLocation } from "@/lib/cards/share";
 import { zipBlobs } from "@/lib/cards/zip";
 import { selectDoc, useCardStore } from "@/lib/cards/store";
 import { Button } from "@/components/ui/button";
@@ -39,21 +49,33 @@ function isTypingTarget(el: EventTarget | null) {
 export function Studio() {
   const doc = useCardStore(useShallow(selectDoc));
   const hydrateAssets = useCardStore((s) => s.hydrateAssets);
+  const applyShare = useCardStore((s) => s.applyShare);
   const undo = useCardStore((s) => s.undo);
   const redo = useCardStore((s) => s.redo);
   const pastLen = useCardStore((s) => s.past.length);
   const futureLen = useCardStore((s) => s.future.length);
-  const [busy, setBusy] = useState<"png" | "copy" | "pack" | null>(null);
+  const [busy, setBusy] = useState<"png" | "copy" | "pack" | "share" | null>(null);
   const [packProgress, setPackProgress] = useState<{ done: number; total: number } | null>(
     null,
   );
+  const booted = useRef(false);
 
   useEffect(() => {
+    if (booted.current) return;
+    booted.current = true;
     void (async () => {
       await useCardStore.persist.rehydrate();
-      await hydrateAssets();
+      const shared = readShareFromLocation();
+      if (shared) {
+        applyShare(shared);
+        toast.message("Shared draft loaded", {
+          description: "Text and layout only — add your own logo or screenshot.",
+        });
+      } else {
+        await hydrateAssets();
+      }
     })();
-  }, [hydrateAssets]);
+  }, [applyShare, hydrateAssets]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -62,12 +84,7 @@ export function Studio() {
 
       const key = e.key.toLowerCase();
 
-      // Let the browser handle native text undo inside inputs when possible,
-      // but still support app-level undo when not mid-composition.
       if (key === "z" && !e.shiftKey) {
-        if (isTypingTarget(e.target) && !e.altKey) {
-          // App history still useful for non-text edits; allow both.
-        }
         e.preventDefault();
         undo();
         return;
@@ -87,7 +104,6 @@ export function Studio() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // onDownload is stable enough via closure over latest doc/busy; rebind each render is fine.
   });
 
   const filename = (sizeId = doc.sizeId) =>
@@ -148,6 +164,29 @@ export function Studio() {
       } catch {
         toast.error("Could not copy or download");
       }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onShare = async () => {
+    setBusy("share");
+    try {
+      const url = buildShareUrl(doc);
+      // Keep the address bar in sync so refresh preserves the share.
+      if (typeof history !== "undefined") {
+        history.replaceState(null, "", url);
+      }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.success("Share link copied", {
+          description: "Text and layout only — images stay on each device.",
+        });
+      } else {
+        toast.message("Share link ready", { description: url });
+      }
+    } catch {
+      toast.error("Could not copy share link");
     } finally {
       setBusy(null);
     }
@@ -222,6 +261,17 @@ export function Studio() {
             <Redo2 className="size-3.5" />
           </Button>
           <span className="mx-0.5 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={onShare}
+            disabled={busy !== null}
+            aria-label="Copy share link"
+            title="Copy share link"
+          >
+            {busy === "share" ? <Check className="size-3.5" /> : <Link2 className="size-3.5" />}
+          </Button>
           <Button
             type="button"
             variant="ghost"
