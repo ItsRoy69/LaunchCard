@@ -171,7 +171,6 @@ export function Studio() {
     setBusy("share");
     try {
       const url = buildShareUrl(doc);
-      // Only mirror into the address bar when the hash stays reasonably short.
       if (typeof history !== "undefined" && url.length <= SHARE_URL_SOFT_LIMIT) {
         history.replaceState(null, "", url);
       }
@@ -295,7 +294,6 @@ export function Studio() {
             {busy === "copy" ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
             Copy
           </Button>
-          {/* Pack: icon on small screens, labeled from md up */}
           <Button
             type="button"
             variant="secondary"
@@ -314,7 +312,7 @@ export function Studio() {
           </Button>
           <Button
             type="button"
-eta variant="secondary"
+            variant="secondary"
             size="sm"
             onClick={onPack}
             disabled={busy !== null}

@@ -17,12 +17,14 @@ function DropSlot({
   value,
   onFile,
   onClear,
+  emphasize,
 }: {
   label: string;
   hint: string;
   value: string | null;
   onFile: (file: File) => void;
   onClear: () => void;
+  emphasize?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
@@ -63,7 +65,11 @@ function DropSlot({
         onDrop={onDrop}
         className={cn(
           "relative flex h-24 w-full items-center justify-center overflow-hidden rounded-md border border-dashed transition-[border-color,background-color] duration-quick",
-          over ? "border-primary bg-surface" : "border-border bg-well hover:border-border-strong",
+          over
+            ? "border-primary bg-surface"
+            : emphasize && !value
+              ? "border-primary/50 bg-surface/60 hover:border-primary"
+              : "border-border bg-well hover:border-border-strong",
         )}
         aria-label={label + ": " + (value ? "replace image" : hint)}
       >
@@ -98,6 +104,7 @@ export function FieldPanel() {
   const url = useCardStore((s) => s.url);
   const stats = useCardStore((s) => s.stats);
   const paletteId = useCardStore((s) => s.paletteId);
+  const templateId = useCardStore((s) => s.templateId);
   const logoDataUrl = useCardStore((s) => s.logoDataUrl);
   const shotDataUrl = useCardStore((s) => s.shotDataUrl);
   const patch = useCardStore((s) => s.patch);
@@ -107,6 +114,8 @@ export function FieldPanel() {
   const loadPreset = useCardStore((s) => s.loadPreset);
   const reset = useCardStore((s) => s.reset);
   const clearAllData = useCardStore((s) => s.clearAllData);
+
+  const frameNeedsShot = templateId === "frame" && !shotDataUrl;
 
   const onClearData = () => {
     const ok = window.confirm(
@@ -242,6 +251,11 @@ export function FieldPanel() {
 
       <section className="space-y-3">
         <p className="text-xs font-medium tracking-wide text-muted">Marks</p>
+        {frameNeedsShot ? (
+          <p className="rounded-md border border-border bg-surface px-2.5 py-2 text-xs text-muted">
+            Frame works best with a screenshot — drop one below.
+          </p>
+        ) : null}
         <DropSlot
           label="Logo"
           hint="Drop logo"
@@ -258,8 +272,9 @@ export function FieldPanel() {
         />
         <DropSlot
           label="Screenshot"
-          hint="Drop screenshot"
+          hint={frameNeedsShot ? "Required for Frame" : "Drop screenshot"}
           value={shotDataUrl}
+          emphasize={frameNeedsShot}
           onFile={async (file) => {
             try {
               const data = await fileToDataUrl(file, 1600, false);
