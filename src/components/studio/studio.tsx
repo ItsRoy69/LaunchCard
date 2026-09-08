@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { Check, Copy, Download, Layers, Loader2 } from "lucide-react";
+import { Check, Copy, Download, Layers, Loader2, Redo2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { SIZES, slugify } from "@/lib/cards/catalog";
 import { ensureCardFonts } from "@/lib/cards/fonts";
@@ -30,9 +30,19 @@ function Mark({ className }: { className?: string }) {
   );
 }
 
+function isTypingTarget(el: EventTarget | null) {
+  if (!(el instanceof HTMLElement)) return false;
+  const tag = el.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
+}
+
 export function Studio() {
   const doc = useCardStore(useShallow(selectDoc));
   const hydrateAssets = useCardStore((s) => s.hydrateAssets);
+  const undo = useCardStore((s) => s.undo);
+  const redo = useCardStore((s) => s.redo);
+  const pastLen = useCardStore((s) => s.past.length);
+  const futureLen = useCardStore((s) => s.future.length);
   const [busy, setBusy] = useState<"png" | "copy" | "pack" | null>(null);
   const [packProgress, setPackProgress] = useState<{ done: number; total: number } | null>(
     null,
@@ -44,6 +54,41 @@ export function Studio() {
       await hydrateAssets();
     })();
   }, [hydrateAssets]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+
+      const key = e.key.toLowerCase();
+
+      // Let the browser handle native text undo inside inputs when possible,
+      // but still support app-level undo when not mid-composition.
+      if (key === "z" && !e.shiftKey) {
+        if (isTypingTarget(e.target) && !e.altKey) {
+          // App history still useful for non-text edits; allow both.
+        }
+        e.preventDefault();
+        undo();
+        return;
+      }
+
+      if ((key === "z" && e.shiftKey) || key === "y") {
+        e.preventDefault();
+        redo();
+        return;
+      }
+
+      if (key === "s") {
+        e.preventDefault();
+        void onDownload();
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // onDownload is stable enough via closure over latest doc/busy; rebind each render is fine.
+  });
 
   const filename = (sizeId = doc.sizeId) =>
     `${slugify(doc.name)}-${sizeId}-${doc.templateId}.png`;
@@ -138,6 +183,9 @@ export function Studio() {
       ? `${packProgress.done}/${packProgress.total}`
       : "Pack";
 
+  const canUndo = pastLen > 0;
+  const canRedo = futureLen > 0;
+
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-fg lg:h-dvh lg:overflow-hidden">
       <header className="flex shrink-0 items-center gap-3 border-b border-border px-3 py-2.5 md:px-5">
@@ -151,6 +199,29 @@ export function Studio() {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={undo}
+            disabled={!canUndo || busy !== null}
+            aria-label="Undo"
+            title="Undo (⌘Z)"
+          >
+            <Undo2 className="size-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={redo}
+            disabled={!canRedo || busy !== null}
+            aria-label="Redo"
+            title="Redo (⌘⇧Z)"
+          >
+            <Redo2 className="size-3.5" />
+          </Button>
+          <span className="mx-0.5 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
           <Button
             type="button"
             variant="ghost"
@@ -179,7 +250,7 @@ export function Studio() {
             size="sm"
             onClick={onPack}
             disabled={busy !== null}
-            className="hidden md:inline-flex min-w-[5.5rem]"
+            className="hidden min-w-[5.5rem] md:inline-flex"
             aria-live="polite"
           >
             {busy === "pack" ? (
