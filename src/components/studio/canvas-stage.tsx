@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { SIZES, slugify } from "@/lib/cards/catalog";
 import { ensureCardFonts } from "@/lib/cards/fonts";
@@ -6,13 +6,20 @@ import { renderCard } from "@/lib/cards/render";
 import { selectDoc, useCardStore } from "@/lib/cards/store";
 import { cn } from "@/lib/utils";
 
-function CanvasSkeleton({ className }: { className?: string }) {
+function CanvasSkeleton({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: CSSProperties;
+}) {
   return (
     <div
       className={cn(
         "relative overflow-hidden rounded-sm border border-border bg-surface",
         className,
       )}
+      style={style}
       aria-hidden="true"
     >
       <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-surface via-well to-surface" />
@@ -67,7 +74,7 @@ export function CanvasStage() {
         setReady(true);
       } catch (err) {
         console.error("[LaunchCard] canvas render failed", err);
-        // Keep previous frame if any; skeleton will hide once ready flips or on next success.
+        // Keep previous frame if any; still clear the skeleton.
         if (token === renderTokenRef.current) setReady(true);
       }
     })();
@@ -102,12 +109,10 @@ export function CanvasStage() {
         {!ready && (
           <CanvasSkeleton
             className="absolute max-h-[calc(100%-1.5rem)] max-w-[calc(100%-1.5rem)] md:max-h-[calc(100%-4rem)] md:max-w-[calc(100%-4rem)]"
-            style={
-              {
-                aspectRatio: `${size.w} / ${size.h}`,
-                width: "min(100%, 720px)",
-              } as React.CSSProperties
-            }
+            style={{
+              aspectRatio: `${size.w} / ${size.h}`,
+              width: "min(100%, 720px)",
+            }}
           />
         )}
         <canvas
