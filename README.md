@@ -2,6 +2,8 @@
 
 Standalone Vite + React studio for polished launch assets. Runs entirely in the browser. Drafts stay on-device — no account, no API, no upload.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-stone.svg)](./LICENSE)
+
 ## Features
 
 - **8 templates** — editorial, flex, split, terminal, poster, quiet, ledger, frame
@@ -9,9 +11,9 @@ Standalone Vite + React studio for polished launch assets. Runs entirely in the 
 - **6 palettes** + logo / screenshot marks
 - **Live canvas** preview at 2×
 - **PNG**, clipboard copy, and multi-size **ZIP pack**
-- **Undo / redo** (⌘Z / ⌘⇧Z) and **shareable draft links** (text + layout in the URL hash)
+- **Undo / redo** and **compact share links** (text + layout in the URL hash only)
 - **IndexedDB** for images, localStorage for text — quota-safe
-- **404 page** for unknown routes, error boundary, export progress, canvas skeleton
+- Error boundary, 404 page, export progress, canvas skeleton
 
 ## Quick start
 
@@ -27,6 +29,14 @@ npm run build
 npm run preview
 ```
 
+## Keyboard
+
+| Shortcut | Action |
+|----------|--------|
+| `⌘Z` / `Ctrl+Z` | Undo |
+| `⌘⇧Z` / `Ctrl+⇧Z` / `Ctrl+Y` | Redo |
+| `⌘S` / `Ctrl+S` | Download PNG |
+
 ## Privacy
 
 - No network calls for editing or export (fonts load from Google Fonts on first visit).
@@ -37,3 +47,7 @@ npm run preview
 ## Stack
 
 Vite · React 19 · TypeScript · Tailwind CSS 4 · Zustand · Canvas 2D
+
+## License
+
+MIT

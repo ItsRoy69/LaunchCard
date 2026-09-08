@@ -1,6 +1,8 @@
 {
   "name": "launchcard",
-  "private": true,
+  "version": "1.0.0",
+  "description": "On-device studio for polished launch assets. No account, no upload.",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 8080",

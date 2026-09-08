@@ -103,9 +103,10 @@ export function TemplateRail() {
           return (
             <button
               key={t.id}
-                type="button"
-                onClick={() => patch({ templateId: t.id })}
-                aria-pressed={on}
+              type="button"
+              onClick={() => patch({ templateId: t.id })}
+              aria-pressed={on}
+              title={t.blurb}
               className={cn(
                 "w-28 shrink-0 rounded-md border p-1.5 text-left transition-[border-color,opacity] duration-quick",
                 on ? "border-primary" : "border-border hover:border-border-strong",
@@ -127,6 +128,7 @@ export function TemplateRail() {
               type="button"
               onClick={() => patch({ sizeId: s.id })}
               aria-pressed={on}
+              title={`${s.w}×${s.h} — ${s.hint}`}
               className={cn(
                 "h-9 shrink-0 rounded-full border px-3 text-xs font-medium transition-[border-color,background-color,color] duration-quick",
                 on

@@ -14,11 +14,7 @@ import { toast } from "sonner";
 import { SIZES, slugify } from "@/lib/cards/catalog";
 import { ensureCardFonts } from "@/lib/cards/fonts";
 import { cardToBlob, downloadBlob, renderCard } from "@/lib/cards/render";
-import {
-  buildShareUrl,
-  readShareFromLocation,
-  SHARE_URL_SOFT_LIMIT,
-} from "@/lib/cards/share";
+import { buildShareUrl, readShareFromLocation } from "@/lib/cards/share";
 import { zipBlobs } from "@/lib/cards/zip";
 import { selectDoc, useCardStore } from "@/lib/cards/store";
 import { Button } from "@/components/ui/button";
@@ -171,16 +167,14 @@ export function Studio() {
     setBusy("share");
     try {
       const url = buildShareUrl(doc);
-      if (typeof history !== "undefined" && url.length <= SHARE_URL_SOFT_LIMIT) {
+      // Keep hash in the bar for moderate-length links only.
+      if (typeof history !== "undefined" && url.length <= 2000) {
         history.replaceState(null, "", url);
       }
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
-        const long = url.length > SHARE_URL_SOFT_LIMIT;
         toast.success("Share link copied", {
-          description: long
-            ? `Link is ${url.length} chars — shorten the tagline if a messenger rejects it.`
-            : "Text and layout only — images stay on each device.",
+          description: "Text and layout only — images stay on each device.",
         });
       } else {
         toast.message("Share link ready", { description: url });
