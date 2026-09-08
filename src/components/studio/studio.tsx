@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { Check, Copy, Download, Layers } from "lucide-react";
+import { Check, Copy, Download, Layers, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { SIZES, slugify } from "@/lib/cards/catalog";
 import { ensureCardFonts } from "@/lib/cards/fonts";
@@ -32,11 +32,18 @@ function Mark({ className }: { className?: string }) {
 
 export function Studio() {
   const doc = useCardStore(useShallow(selectDoc));
+  const hydrateAssets = useCardStore((s) => s.hydrateAssets);
   const [busy, setBusy] = useState<"png" | "copy" | "pack" | null>(null);
+  const [packProgress, setPackProgress] = useState<{ done: number; total: number } | null>(
+    null,
+  );
 
   useEffect(() => {
-    void useCardStore.persist.rehydrate();
-  }, []);
+    void (async () => {
+      await useCardStore.persist.rehydrate();
+      await hydrateAssets();
+    })();
+  }, [hydrateAssets]);
 
   const filename = (sizeId = doc.sizeId) =>
     `${slugify(doc.name)}-${sizeId}-${doc.templateId}.png`;
@@ -71,7 +78,6 @@ export function Studio() {
       );
       if (!blob) throw new Error("blob");
 
-      // Prefer modern ClipboardItem when available.
       if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
         try {
           const item = new ClipboardItem({ "image/png": blob });
@@ -83,7 +89,6 @@ export function Studio() {
         }
       }
 
-      // Fallback: download the PNG and tell the user why.
       downloadBlob(blob, filename());
       toast.message("Clipboard blocked", {
         description: "PNG downloaded instead. You can paste from Downloads.",
@@ -105,20 +110,33 @@ export function Studio() {
 
   const onPack = async () => {
     setBusy("pack");
+    const total = SIZES.length;
+    setPackProgress({ done: 0, total });
+    const toastId = toast.loading(`Exporting 0/${total}…`);
     try {
-      const files = [];
-      for (const size of SIZES) {
+      const files: { name: string; blob: Blob }[] = [];
+      for (let i = 0; i < SIZES.length; i++) {
+        const size = SIZES[i];
         files.push({ name: filename(size.id), blob: await exportOne(size.id) });
+        const done = i + 1;
+        setPackProgress({ done, total });
+        toast.loading(`Exporting ${done}/${total}…`, { id: toastId });
       }
       const pack = await zipBlobs(files);
       downloadBlob(pack, `${slugify(doc.name)}-launch-assets.zip`);
-      toast.success("Launch asset pack saved");
+      toast.success("Launch asset pack saved", { id: toastId });
     } catch {
-      toast.error("Pack export failed");
+      toast.error("Pack export failed", { id: toastId });
     } finally {
       setBusy(null);
+      setPackProgress(null);
     }
   };
+
+  const packLabel =
+    busy === "pack" && packProgress
+      ? `${packProgress.done}/${packProgress.total}`
+      : "Pack";
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-fg lg:h-dvh lg:overflow-hidden">
@@ -161,13 +179,22 @@ export function Studio() {
             size="sm"
             onClick={onPack}
             disabled={busy !== null}
-            className="hidden md:inline-flex"
+            className="hidden md:inline-flex min-w-[5.5rem]"
+            aria-live="polite"
           >
-            <Layers className="size-3.5" />
-            Pack
+            {busy === "pack" ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Layers className="size-3.5" />
+            )}
+            {packLabel}
           </Button>
           <Button type="button" size="sm" onClick={onDownload} disabled={busy !== null}>
-            <Download className="size-3.5" />
+            {busy === "png" ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Download className="size-3.5" />
+            )}
             PNG
           </Button>
         </div>

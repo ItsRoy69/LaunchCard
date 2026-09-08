@@ -7,7 +7,12 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-async function bitmapFromFile(file: File): Promise<{ width: number; height: number; draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void; close: () => void }> {
+async function bitmapFromFile(file: File): Promise<{
+  width: number;
+  height: number;
+  draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
+  close: () => void;
+}> {
   try {
     const bitmap = await createImageBitmap(file);
     return {
@@ -54,7 +59,8 @@ export async function fileToDataUrl(
     if (!ctx) throw new Error("No canvas");
     src.draw(ctx, w, h);
     const png = preferPng || file.type.includes("png") || file.type.includes("svg");
-    return png ? canvas.toDataURL("image/png") : canvas.toDataURL("image/jpeg", 0.88);
+    // Slightly tighter JPEG for screenshots to keep storage lean.
+    return png ? canvas.toDataURL("image/png") : canvas.toDataURL("image/jpeg", 0.82);
   } finally {
     src.close();
   }
