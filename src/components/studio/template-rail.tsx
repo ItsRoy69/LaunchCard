@@ -96,8 +96,8 @@ export function TemplateRail() {
   const pal = PALETTES.find((p) => p.id === paletteId) ?? PALETTES[0];
 
   return (
-    <div className="border-t border-border bg-bg">
-      <div className="studio-scroll flex gap-2 overflow-x-auto px-3 py-3 md:px-4">
+    <div className="shrink-0 border-t border-border bg-bg">
+      <div className="studio-scroll flex gap-2 overflow-x-auto overscroll-x-contain px-3 py-3 md:px-4">
         {TEMPLATES.map((t) => {
           const on = t.id === templateId;
           return (
@@ -119,7 +119,7 @@ export function TemplateRail() {
           );
         })}
       </div>
-      <div className="studio-scroll flex gap-2 overflow-x-auto border-t border-border px-3 py-2 md:px-4">
+      <div className="studio-scroll flex gap-2 overflow-x-auto overscroll-x-contain border-t border-border px-3 py-2 md:px-4">
         {SIZES.map((s) => {
           const on = s.id === sizeId;
           return (

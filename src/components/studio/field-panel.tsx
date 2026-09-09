@@ -130,7 +130,7 @@ export function FieldPanel() {
   };
 
   return (
-    <aside className="studio-scroll flex w-full shrink-0 flex-col gap-6 overflow-y-auto border-t border-border bg-bg p-4 lg:h-full lg:w-80 lg:border-r lg:border-t-0 lg:p-5">
+    <aside className="studio-scroll flex max-h-[42dvh] w-full shrink-0 flex-col gap-6 overflow-y-auto overscroll-contain border-t border-border bg-bg p-4 lg:max-h-none lg:h-full lg:w-80 lg:border-r lg:border-t-0 lg:p-5">
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-xs font-medium tracking-wide text-muted">Example</p>

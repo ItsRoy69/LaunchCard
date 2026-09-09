@@ -74,7 +74,6 @@ export function CanvasStage() {
         setReady(true);
       } catch (err) {
         console.error("[LaunchCard] canvas render failed", err);
-        // Keep previous frame if any; still clear the skeleton.
         if (token === renderTokenRef.current) setReady(true);
       }
     })();
@@ -101,10 +100,10 @@ export function CanvasStage() {
   }, [size.w, size.h]);
 
   return (
-    <div className="flex h-64 shrink-0 flex-col lg:h-auto lg:min-h-0 lg:flex-1">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div
         ref={frameRef}
-        className="studio-well relative flex h-full min-h-0 flex-1 items-center justify-center overflow-hidden p-3 md:p-8"
+        className="studio-well relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3 md:p-8"
       >
         {!ready && (
           <CanvasSkeleton
@@ -125,7 +124,7 @@ export function CanvasStage() {
           aria-busy={!ready}
         />
       </div>
-      <p className="border-t border-border px-4 py-2 text-center font-mono text-xs text-subtle">
+      <p className="shrink-0 border-t border-border px-4 py-2 text-center font-mono text-xs text-subtle">
         {slugify(doc.name)}-{size.id}-{doc.templateId}.png
         <span className="mx-2 text-border-strong">/</span>
         {size.w}×{size.h} @2x
