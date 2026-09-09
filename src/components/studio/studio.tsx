@@ -15,6 +15,7 @@ import { SIZES, slugify } from "@/lib/cards/catalog";
 import { ensureCardFonts } from "@/lib/cards/fonts";
 import { cardToBlob, downloadBlob, renderCard } from "@/lib/cards/render";
 import { buildShareUrl, readShareFromLocation } from "@/lib/cards/share";
+import { trackEvent } from "@/lib/cards/telemetry";
 import { zipBlobs } from "@/lib/cards/zip";
 import { selectDoc, useCardStore } from "@/lib/cards/store";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ export function Studio() {
       const shared = readShareFromLocation();
       if (shared) {
         applyShare(shared);
+        trackEvent("load_share");
         toast.message("Shared draft loaded", {
           description: "Text and layout only — add your own logo or screenshot.",
         });
@@ -113,6 +115,7 @@ export function Studio() {
     try {
       const blob = await exportOne();
       downloadBlob(blob, filename());
+      trackEvent("export_png", { size: doc.sizeId, template: doc.templateId });
       toast.success("PNG saved");
     } catch {
       toast.error("Could not export PNG");
@@ -137,6 +140,7 @@ export function Studio() {
         try {
           const item = new ClipboardItem({ "image/png": blob });
           await navigator.clipboard.write([item]);
+          trackEvent("copy_image", { size: doc.sizeId, template: doc.templateId });
           toast.success("Copied to clipboard");
           return;
         } catch {
@@ -145,6 +149,7 @@ export function Studio() {
       }
 
       downloadBlob(blob, filename());
+      trackEvent("copy_image", { size: doc.sizeId, template: doc.templateId, fallback: true });
       toast.message("Clipboard blocked", {
         description: "PNG downloaded instead. You can paste from Downloads.",
       });
@@ -167,12 +172,12 @@ export function Studio() {
     setBusy("share");
     try {
       const url = buildShareUrl(doc);
-      // Keep hash in the bar for moderate-length links only.
       if (typeof history !== "undefined" && url.length <= 2000) {
         history.replaceState(null, "", url);
       }
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
+        trackEvent("share_link", { template: doc.templateId });
         toast.success("Share link copied", {
           description: "Text and layout only — images stay on each device.",
         });
@@ -202,6 +207,7 @@ export function Studio() {
       }
       const pack = await zipBlobs(files);
       downloadBlob(pack, `${slugify(doc.name)}-launch-assets.zip`);
+      trackEvent("export_pack", { template: doc.templateId, count: total });
       toast.success("Launch asset pack saved", { id: toastId });
     } catch {
       toast.error("Pack export failed", { id: toastId });

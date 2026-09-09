@@ -39,14 +39,15 @@ npm run preview
 
 ## Privacy
 
-- No network calls for editing or export (fonts load from Google Fonts on first visit).
 - Draft text lives in `localStorage`; logos/screenshots in IndexedDB.
 - Share links encode only text + layout in the URL hash. Images are never included.
+- Editing and export never upload card content.
+- **Vercel Web Analytics** counts page views / visitors and a few anonymous product events (export, copy, share). No draft text or images are sent. Enable **Web Analytics** (and optionally **Speed Insights**) on the Vercel project dashboard after deploy.
 - Use **Clear local data** in the sidebar to wipe everything on this device.
 
 ## Stack
 
-Vite · React 19 · TypeScript · Tailwind CSS 4 · Zustand · Canvas 2D
+Vite · React 19 · TypeScript · Tailwind CSS 4 · Zustand · Canvas 2D · Vercel Analytics
 
 ## License
 
