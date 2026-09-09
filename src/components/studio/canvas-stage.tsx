@@ -6,49 +6,161 @@ import { renderCard } from "@/lib/cards/render";
 import { selectDoc, useCardStore } from "@/lib/cards/store";
 import { cn } from "@/lib/utils";
 
-function CanvasSkeleton({ landscape }: { landscape: boolean }) {
+/** Placeholder chrome that mirrors a typical card: mark, title, body, stats. */
+function CanvasSkeleton({ mode }: { mode: "banner" | "landscape" | "portrait" }) {
   return (
     <div className="absolute inset-0 overflow-hidden bg-surface" aria-hidden="true">
       <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-surface via-well to-surface" />
-      <div
-        className={cn(
-          "absolute inset-0 flex p-[6%]",
-          landscape ? "flex-row items-center gap-[3%]" : "flex-col justify-between",
-        )}
-      >
-        {landscape ? (
-          <>
-            <div className="size-[12%] max-h-14 max-w-14 shrink-0 rounded-md bg-border/70" />
-            <div className="flex min-w-0 flex-1 flex-col gap-[2%]">
-              <div className="h-[18%] max-h-4 w-[40%] rounded-sm bg-border/80" />
-              <div className="h-[12%] max-h-3 w-[55%] rounded-sm bg-border/55" />
-            </div>
-            <div className="flex shrink-0 gap-[4%]">
-              <div className="h-5 w-8 rounded-sm bg-border/65" />
-              <div className="h-5 w-8 rounded-sm bg-border/50" />
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex items-start justify-between">
-              <div className="h-2.5 w-[18%] rounded-sm bg-border/75" />
-              <div className="size-8 rounded-md bg-border/70" />
-            </div>
-            <div className="space-y-2">
-              <div className="h-5 w-[55%] rounded-sm bg-border/80" />
-              <div className="h-3 w-[75%] rounded-sm bg-border/60" />
-              <div className="h-3 w-[40%] rounded-sm bg-border/50" />
-            </div>
-            <div className="flex gap-4">
-              <div className="h-5 w-10 rounded-sm bg-border/70" />
-              <div className="h-5 w-10 rounded-sm bg-border/60" />
-              <div className="h-5 w-10 rounded-sm bg-border/50" />
-            </div>
-          </>
-        )}
-      </div>
+
+      {mode === "banner" && (
+        <>
+          {/* Mark */}
+          <div
+            className="absolute rounded-md bg-border/70"
+            style={{ left: "4%", top: "22%", width: "10%", height: "56%" }}
+          />
+          {/* Title + tagline */}
+          <div
+            className="absolute rounded-sm bg-border/80"
+            style={{ left: "18%", top: "30%", width: "28%", height: "18%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/55"
+            style={{ left: "18%", top: "55%", width: "22%", height: "12%" }}
+          />
+          {/* Stats */}
+          <div
+            className="absolute rounded-sm bg-border/65"
+            style={{ left: "58%", top: "32%", width: "10%", height: "36%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/55"
+            style={{ left: "72%", top: "32%", width: "10%", height: "36%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/45"
+            style={{ left: "86%", top: "32%", width: "10%", height: "36%" }}
+          />
+        </>
+      )}
+
+      {mode === "landscape" && (
+        <>
+          {/* Kicker */}
+          <div
+            className="absolute rounded-sm bg-border/60"
+            style={{ left: "5%", top: "8%", width: "14%", height: "3.5%" }}
+          />
+          {/* Mark top-right */}
+          <div
+            className="absolute rounded-md bg-border/70"
+            style={{ right: "5%", top: "7%", width: "7%", aspectRatio: "1" }}
+          />
+          {/* Title block */}
+          <div
+            className="absolute rounded-sm bg-border/85"
+            style={{ left: "5%", top: "18%", width: "48%", height: "10%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/75"
+            style={{ left: "5%", top: "31%", width: "36%", height: "10%" }}
+          />
+          {/* Rule */}
+          <div
+            className="absolute bg-border/40"
+            style={{ left: "5%", top: "48%", width: "90%", height: "1px" }}
+          />
+          {/* Tagline */}
+          <div
+            className="absolute rounded-sm bg-border/55"
+            style={{ left: "5%", top: "54%", width: "62%", height: "5%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/45"
+            style={{ left: "5%", top: "62%", width: "48%", height: "5%" }}
+          />
+          {/* Stats row */}
+          <div
+            className="absolute rounded-sm bg-border/70"
+            style={{ left: "5%", top: "78%", width: "12%", height: "10%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/60"
+            style={{ left: "22%", top: "78%", width: "12%", height: "10%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/50"
+            style={{ left: "39%", top: "78%", width: "12%", height: "10%" }}
+          />
+          {/* Meta */}
+          <div
+            className="absolute rounded-sm bg-border/40"
+            style={{ left: "5%", top: "92%", width: "24%", height: "3%" }}
+          />
+        </>
+      )}
+
+      {mode === "portrait" && (
+        <>
+          <div
+            className="absolute rounded-sm bg-border/60"
+            style={{ left: "7%", top: "5%", width: "22%", height: "2.5%" }}
+          />
+          <div
+            className="absolute rounded-md bg-border/70"
+            style={{ right: "7%", top: "4%", width: "12%", aspectRatio: "1" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/85"
+            style={{ left: "7%", top: "14%", width: "70%", height: "6%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/75"
+            style={{ left: "7%", top: "22%", width: "55%", height: "6%" }}
+          />
+          <div
+            className="absolute bg-border/40"
+            style={{ left: "7%", top: "32%", width: "86%", height: "1px" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/55"
+            style={{ left: "7%", top: "36%", width: "80%", height: "3.5%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/45"
+            style={{ left: "7%", top: "42%", width: "65%", height: "3.5%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/40"
+            style={{ left: "7%", top: "48%", width: "50%", height: "3.5%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/70"
+            style={{ left: "7%", top: "78%", width: "22%", height: "7%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/60"
+            style={{ left: "36%", top: "78%", width: "22%", height: "7%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/50"
+            style={{ left: "65%", top: "78%", width: "22%", height: "7%" }}
+          />
+          <div
+            className="absolute rounded-sm bg-border/40"
+            style={{ left: "7%", top: "92%", width: "40%", height: "2.5%" }}
+          />
+        </>
+      )}
     </div>
   );
+}
+
+function layoutMode(w: number, h: number): "banner" | "landscape" | "portrait" {
+  const r = h / Math.max(w, 1);
+  if (r > 1.15) return "portrait";
+  if (r < 0.42) return "banner";
+  return "landscape";
 }
 
 function availableSize(el: HTMLElement) {
@@ -116,7 +228,7 @@ export function CanvasStage() {
     return () => ro.disconnect();
   }, [size.w, size.h]);
 
-  const landscape = size.w >= size.h;
+  const mode = layoutMode(size.w, size.h);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -129,7 +241,7 @@ export function CanvasStage() {
             className="relative shrink-0 overflow-hidden rounded-sm border border-border"
             style={{ width: box.w, height: box.h }}
           >
-            {!ready && <CanvasSkeleton landscape={landscape} />}
+            {!ready && <CanvasSkeleton mode={mode} />}
             <canvas
               ref={canvasRef}
               className={cn(
