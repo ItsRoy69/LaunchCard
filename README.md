@@ -37,17 +37,18 @@ npm run preview
 | `⌘⇧Z` / `Ctrl+⇧Z` / `Ctrl+Y` | Redo |
 | `⌘S` / `Ctrl+S` | Download PNG |
 
-## Privacy
+## Privacy & analytics
 
 - Draft text lives in `localStorage`; logos/screenshots in IndexedDB.
 - Share links encode only text + layout in the URL hash. Images are never included.
 - Editing and export never upload card content.
-- **Vercel Web Analytics** counts page views / visitors and a few anonymous product events (export, copy, share). No draft text or images are sent. Enable **Web Analytics** (and optionally **Speed Insights**) on the Vercel project dashboard after deploy.
-- Use **Clear local data** in the sidebar to wipe everything on this device.
+- **Vercel Web Analytics** — last ~30 days visitors (Hobby). Enable in the Vercel project dashboard.
+- **Lifetime page views** — `POST /api/views` increments a counter in Upstash Redis (connected as `launchcard-kv`). Count once per browser tab session. Read total with `GET /api/views` → `{ "total": N }`.
+- Use **Clear local data** in the sidebar to wipe device drafts only (does not reset the global counter).
 
 ## Stack
 
-Vite · React 19 · TypeScript · Tailwind CSS 4 · Zustand · Canvas 2D · Vercel Analytics
+Vite · React 19 · TypeScript · Tailwind CSS 4 · Zustand · Canvas 2D · Vercel Analytics · Upstash Redis
 
 ## License
 
