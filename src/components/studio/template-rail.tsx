@@ -14,6 +14,7 @@ function Mini({
   const bg = pal.bg;
   const muted = pal.muted;
   const rule = pal.rule;
+  const accent = pal.accent;
   return (
     <div className="relative h-14 w-full overflow-hidden rounded-sm" style={{ background: bg }}>
       {id === "editorial" && (
@@ -84,6 +85,21 @@ function Mini({
           </div>
         </div>
       )}
+      {id === "signal" && (
+        <div className="flex h-full">
+          <div className="h-full w-1.5" style={{ background: accent }} />
+          <div className="flex flex-1 flex-col justify-center gap-1 p-1.5">
+            <div className="h-1.5 w-2/3 rounded-sm" style={{ background: fg }} />
+            <div className="h-1 w-1/2" style={{ background: muted }} />
+          </div>
+        </div>
+      )}
+      {id === "marquee" && (
+        <div className="flex h-full flex-col justify-center gap-1 p-1.5">
+          <div className="h-4 w-full rounded-sm" style={{ background: fg }} />
+          <div className="h-0.5 w-1/3" style={{ background: accent }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -92,8 +108,11 @@ export function TemplateRail() {
   const templateId = useCardStore((s) => s.templateId);
   const paletteId = useCardStore((s) => s.paletteId);
   const sizeId = useCardStore((s) => s.sizeId);
+  const accent = useCardStore((s) => s.accent);
   const patch = useCardStore((s) => s.patch);
-  const pal = PALETTES.find((p) => p.id === paletteId) ?? PALETTES[0];
+  const base = PALETTES.find((p) => p.id === paletteId) ?? PALETTES[0];
+  const pal = accent ? { ...base, accent } : base;
+  const current = SIZES.find((s) => s.id === sizeId) ?? SIZES[0];
 
   return (
     <div className="shrink-0 border-t border-border bg-bg">
@@ -119,7 +138,8 @@ export function TemplateRail() {
           );
         })}
       </div>
-      <div className="studio-scroll flex gap-2 overflow-x-auto overscroll-x-contain border-t border-border px-3 py-2 md:px-4">
+
+      <div className="studio-scroll flex items-center gap-2 overflow-x-auto overscroll-x-contain border-t border-border px-3 py-2 md:px-4">
         {SIZES.map((s) => {
           const on = s.id === sizeId;
           return (
@@ -137,6 +157,40 @@ export function TemplateRail() {
               )}
             >
               {s.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Aspect preview strip — compare current size to others */}
+      <div className="flex items-end gap-1.5 overflow-x-auto border-t border-border px-3 py-2 md:px-4">
+        <span className="mr-1 shrink-0 self-center text-[10px] uppercase tracking-wide text-subtle">
+          Frame
+        </span>
+        {SIZES.map((s) => {
+          const on = s.id === sizeId;
+          const max = 28;
+          const scale = max / Math.max(s.w, s.h);
+          const bw = Math.max(6, Math.round(s.w * scale));
+          const bh = Math.max(6, Math.round(s.h * scale));
+          return (
+            <button
+              key={`preview-${s.id}`}
+              type="button"
+              onClick={() => patch({ sizeId: s.id })}
+              title={`${s.label}: ${s.w}×${s.h}`}
+              className={cn(
+                "flex shrink-0 flex-col items-center gap-0.5 rounded border p-1 transition-colors",
+                on ? "border-primary bg-surface" : "border-transparent hover:border-border",
+              )}
+            >
+              <span
+                className="block rounded-[2px] border border-border-strong bg-well"
+                style={{ width: bw, height: bh }}
+              />
+              <span className={cn("text-[9px]", on ? "text-fg" : "text-subtle")}>
+                {s.id === current.id ? "now" : s.id}
+              </span>
             </button>
           );
         })}
