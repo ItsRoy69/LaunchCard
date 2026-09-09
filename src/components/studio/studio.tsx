@@ -9,6 +9,7 @@ import {
   Loader2,
   Redo2,
   Undo2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { SIZES, slugify } from "@/lib/cards/catalog";
@@ -22,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { CanvasStage } from "./canvas-stage";
 import { FieldPanel } from "./field-panel";
 import { TemplateRail } from "./template-rail";
+import { cn } from "@/lib/utils";
 
 function Mark({ className }: { className?: string }) {
   return (
@@ -41,6 +43,8 @@ function Mark({ className }: { className?: string }) {
   );
 }
 
+const ALL_SIZE_IDS = SIZES.map((s) => s.id);
+
 export function Studio() {
   const doc = useCardStore(useShallow(selectDoc));
   const hydrateAssets = useCardStore((s) => s.hydrateAssets);
@@ -53,7 +57,10 @@ export function Studio() {
   const [packProgress, setPackProgress] = useState<{ done: number; total: number } | null>(
     null,
   );
+  const [packOpen, setPackOpen] = useState(false);
+  const [packSelected, setPackSelected] = useState<string[]>(() => [...ALL_SIZE_IDS]);
   const booted = useRef(false);
+  const packDialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (booted.current) return;
@@ -72,6 +79,18 @@ export function Studio() {
       }
     })();
   }, [applyShare, hydrateAssets]);
+
+  useEffect(() => {
+    if (!packOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && busy !== "pack") {
+        e.preventDefault();
+        setPackOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [packOpen, busy]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -207,15 +226,35 @@ export function Studio() {
     }
   };
 
-  const onPack = async () => {
+  const openPack = () => {
+    if (busy !== null) return;
+    setPackSelected([...ALL_SIZE_IDS]);
+    setPackOpen(true);
+  };
+
+  const togglePackSize = (id: string) => {
+    setPackSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const selectAllPack = () => setPackSelected([...ALL_SIZE_IDS]);
+  const selectNonePack = () => setPackSelected([]);
+
+  const runPack = async () => {
+    const selected = SIZES.filter((s) => packSelected.includes(s.id));
+    if (!selected.length) {
+      toast.error("Select at least one size");
+      return;
+    }
     setBusy("pack");
-    const total = SIZES.length;
+    const total = selected.length;
     setPackProgress({ done: 0, total });
     const toastId = toast.loading(`Exporting 0/${total}…`);
     try {
       const files: { name: string; blob: Blob }[] = [];
-      for (let i = 0; i < SIZES.length; i++) {
-        const size = SIZES[i];
+      for (let i = 0; i < selected.length; i++) {
+        const size = selected[i];
         files.push({ name: filename(size.id), blob: await exportOne(size.id) });
         const done = i + 1;
         setPackProgress({ done, total });
@@ -227,8 +266,13 @@ export function Studio() {
         template: doc.templateId,
         count: total,
         scale: doc.exportScale,
+        sizes: selected.map((s) => s.id).join(","),
       });
-      toast.success("Launch asset pack saved", { id: toastId });
+      toast.success(
+        total === 1 ? "1 asset saved" : `Launch asset pack saved (${total})`,
+        { id: toastId },
+      );
+      setPackOpen(false);
     } catch {
       toast.error("Pack export failed", { id: toastId });
     } finally {
@@ -244,6 +288,7 @@ export function Studio() {
 
   const canUndo = pastLen > 0;
   const canRedo = futureLen > 0;
+  const selectedCount = packSelected.length;
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-bg text-fg">
@@ -318,11 +363,11 @@ export function Studio() {
             type="button"
             variant="secondary"
             size="icon-sm"
-            onClick={onPack}
+            onClick={openPack}
             disabled={busy !== null}
             className="md:hidden"
             aria-label="Export asset pack"
-            title="Export all sizes as ZIP"
+            title="Choose sizes and export ZIP"
           >
             {busy === "pack" ? (
               <Loader2 className="size-3.5 animate-spin" />
@@ -334,7 +379,7 @@ export function Studio() {
             type="button"
             variant="secondary"
             size="sm"
-            onClick={onPack}
+            onClick={openPack}
             disabled={busy !== null}
             className="hidden min-w-[5.5rem] md:inline-flex"
             aria-live="polite"
@@ -364,6 +409,154 @@ export function Studio() {
           <TemplateRail />
         </div>
       </div>
+
+      {packOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-3 sm:items-center"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && busy !== "pack") setPackOpen(false);
+          }}
+        >
+          <div
+            ref={packDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pack-dialog-title"
+            className="flex max-h-[min(90dvh,32rem)] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border bg-bg shadow-lg"
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
+              <div>
+                <h2 id="pack-dialog-title" className="text-sm font-medium text-fg">
+                  Export pack
+                </h2>
+                <p className="mt-0.5 text-xs text-muted">
+                  Choose sizes for the ZIP. Scale follows Style ({doc.exportScale}×).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => busy !== "pack" && setPackOpen(false)}
+                disabled={busy === "pack"}
+                className="inline-flex size-8 items-center justify-center rounded-md text-muted hover:bg-surface hover:text-fg disabled:opacity-40"
+                aria-label="Close"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
+              <p className="text-xs text-subtle">
+                {selectedCount} of {SIZES.length} selected
+              </p>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={selectAllPack}
+                  disabled={busy === "pack"}
+                  className="h-7 rounded-md px-2 text-xs text-muted hover:bg-surface hover:text-fg disabled:opacity-40"
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={selectNonePack}
+                  disabled={busy === "pack"}
+                  className="h-7 rounded-md px-2 text-xs text-muted hover:bg-surface hover:text-fg disabled:opacity-40"
+                >
+                  None
+                </button>
+              </div>
+            </div>
+
+            <ul className="studio-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2">
+              {SIZES.map((s) => {
+                const on = packSelected.includes(s.id);
+                const max = 36;
+                const scale = max / Math.max(s.w, s.h);
+                const bw = Math.max(10, Math.round(s.w * scale));
+                const bh = Math.max(10, Math.round(s.h * scale));
+                return (
+                  <li key={s.id}>
+                    <button
+                      type="button"
+                      onClick={() => togglePackSize(s.id)}
+                      disabled={busy === "pack"}
+                      aria-pressed={on}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors disabled:opacity-50",
+                        on ? "bg-surface" : "hover:bg-well",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex size-5 shrink-0 items-center justify-center rounded border",
+                          on
+                            ? "border-primary bg-primary text-primary-fg"
+                            : "border-border bg-bg",
+                        )}
+                        aria-hidden="true"
+                      >
+                        {on ? <Check className="size-3" strokeWidth={3} /> : null}
+                      </span>
+                      <span
+                        className="flex shrink-0 items-center justify-center rounded border border-border bg-well"
+                        style={{ width: 40, height: 40 }}
+                        aria-hidden="true"
+                      >
+                        <span
+                          className="block rounded-[2px] border border-border-strong bg-surface"
+                          style={{ width: bw, height: bh }}
+                        />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-fg">
+                          {s.label}
+                        </span>
+                        <span className="block truncate text-xs text-subtle">
+                          {s.w}×{s.h} · {s.hint}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setPackOpen(false)}
+                disabled={busy === "pack"}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void runPack()}
+                disabled={busy === "pack" || selectedCount === 0}
+              >
+                {busy === "pack" ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin" />
+                    {packProgress
+                      ? `${packProgress.done}/${packProgress.total}`
+                      : "Exporting…"}
+                  </>
+                ) : (
+                  <>
+                    <Download className="size-3.5" />
+                    Download {selectedCount || ""} ZIP
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
