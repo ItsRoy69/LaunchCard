@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { SIZES, slugify } from "@/lib/cards/catalog";
 import { ensureCardFonts } from "@/lib/cards/fonts";
@@ -7,37 +7,109 @@ import { selectDoc, useCardStore } from "@/lib/cards/store";
 import { cn } from "@/lib/utils";
 
 function CanvasSkeleton({
-  className,
-  style,
+  width,
+  height,
+  sizeId,
 }: {
-  className?: string;
-  style?: CSSProperties;
+  width: number;
+  height: number;
+  sizeId: string;
 }) {
+  // Layout hints scale with the fitted box so bars match the card proportions.
+  const k = Math.min(width / 400, height / 220, 1.4);
+  const isBanner = height / Math.max(width, 1) < 0.42;
+  const isPortrait = height / Math.max(width, 1) > 1.15;
+
   return (
     <div
-      className={cn(
-        "relative overflow-hidden rounded-sm border border-border bg-surface",
-        className,
-      )}
-      style={style}
+      className="relative overflow-hidden rounded-sm border border-border bg-surface"
+      style={{ width, height }}
       aria-hidden="true"
+      data-size={sizeId}
     >
       <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-surface via-well to-surface" />
-      <div className="absolute inset-0 flex flex-col justify-between p-[8%]">
-        <div className="flex items-start justify-between gap-3">
-          <div className="h-3 w-16 rounded-sm bg-border/80" />
-          <div className="size-8 rounded-md bg-border/70" />
-        </div>
-        <div className="space-y-2">
-          <div className="h-5 w-3/5 max-w-[70%] rounded-sm bg-border/80" />
-          <div className="h-3 w-4/5 max-w-[85%] rounded-sm bg-border/60" />
-          <div className="h-3 w-2/5 max-w-[45%] rounded-sm bg-border/50" />
-        </div>
-        <div className="flex gap-4">
-          <div className="h-6 w-12 rounded-sm bg-border/70" />
-          <div className="h-6 w-12 rounded-sm bg-border/60" />
-          <div className="h-6 w-12 rounded-sm bg-border/50" />
-        </div>
+      <div
+        className={cn(
+          "absolute inset-0 flex",
+          isBanner ? "flex-row items-center" : "flex-col justify-between",
+        )}
+        style={{
+          padding: Math.max(10, 18 * k),
+          gap: Math.max(8, 12 * k),
+        }}
+      >
+        {isBanner ? (
+          <>
+            <div
+              className="shrink-0 rounded-md bg-border/70"
+              style={{ width: 28 * k, height: 28 * k }}
+            />
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <div
+                className="rounded-sm bg-border/80"
+                style={{ height: 10 * k, width: "45%" }}
+              />
+              <div
+                className="rounded-sm bg-border/55"
+                style={{ height: 7 * k, width: "60%" }}
+              />
+            </div>
+            <div className="flex shrink-0 gap-3">
+              <div
+                className="rounded-sm bg-border/65"
+                style={{ height: 16 * k, width: 28 * k }}
+              />
+              <div
+                className="rounded-sm bg-border/55"
+                style={{ height: 16 * k, width: 28 * k }}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-3">
+              <div
+                className="rounded-sm bg-border/75"
+                style={{ height: 8 * k, width: 48 * k }}
+              />
+              <div
+                className="rounded-md bg-border/70"
+                style={{ width: 28 * k, height: 28 * k }}
+              />
+            </div>
+            <div className="space-y-2">
+              <div
+                className="rounded-sm bg-border/80"
+                style={{
+                  height: isPortrait ? 14 * k : 18 * k,
+                  width: isPortrait ? "70%" : "55%",
+                }}
+              />
+              <div
+                className="rounded-sm bg-border/60"
+                style={{ height: 9 * k, width: "78%" }}
+              />
+              <div
+                className="rounded-sm bg-border/50"
+                style={{ height: 9 * k, width: "42%" }}
+              />
+            </div>
+            <div className="flex gap-4">
+              <div
+                className="rounded-sm bg-border/70"
+                style={{ height: 18 * k, width: 36 * k }}
+              />
+              <div
+                className="rounded-sm bg-border/60"
+                style={{ height: 18 * k, width: 36 * k }}
+              />
+              <div
+                className="rounded-sm bg-border/50"
+                style={{ height: 18 * k, width: 36 * k }}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -48,6 +120,7 @@ export function CanvasStage() {
   const frameRef = useRef<HTMLDivElement>(null);
   const renderTokenRef = useRef(0);
   const [ready, setReady] = useState(false);
+  const [display, setDisplay] = useState({ w: 0, h: 0 });
   const doc = useCardStore(useShallow(selectDoc));
   const size = SIZES.find((s) => s.id === doc.sizeId) ?? SIZES[0];
 
@@ -88,10 +161,11 @@ export function CanvasStage() {
       const maxW = Math.max(1, frame.clientWidth);
       const maxH = Math.max(1, frame.clientHeight);
       const scale = Math.min(maxW / size.w, maxH / size.h);
-      const w = Math.round(size.w * scale);
-      const h = Math.round(size.h * scale);
+      const w = Math.max(1, Math.round(size.w * scale));
+      const h = Math.max(1, Math.round(size.h * scale));
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
+      setDisplay({ w, h });
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -105,14 +179,8 @@ export function CanvasStage() {
         ref={frameRef}
         className="studio-well relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3 md:p-8"
       >
-        {!ready && (
-          <CanvasSkeleton
-            className="absolute max-h-[calc(100%-1.5rem)] max-w-[calc(100%-1.5rem)] md:max-h-[calc(100%-4rem)] md:max-w-[calc(100%-4rem)]"
-            style={{
-              aspectRatio: `${size.w} / ${size.h}`,
-              width: "min(100%, 720px)",
-            }}
-          />
+        {!ready && display.w > 0 && display.h > 0 && (
+          <CanvasSkeleton width={display.w} height={display.h} sizeId={size.id} />
         )}
         <canvas
           ref={canvasRef}
