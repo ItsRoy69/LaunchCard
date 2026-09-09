@@ -1,4 +1,11 @@
-import type { CardDoc, CardPalette, CardSize, TemplateMeta } from "./types";
+import type {
+  CardDoc,
+  CardPalette,
+  CardSize,
+  ExportScale,
+  FontPair,
+  TemplateMeta,
+} from "./types";
 
 export const SIZES: CardSize[] = [
   { id: "og", label: "OG / Link", w: 1200, h: 630, hint: "X, Slack, iMessage" },
@@ -8,6 +15,42 @@ export const SIZES: CardSize[] = [
   { id: "instagram", label: "Instagram", w: 1080, h: 1350, hint: "4:5 feed post" },
   { id: "ph", label: "Product Hunt", w: 1270, h: 760, hint: "Gallery image" },
   { id: "story", label: "Story", w: 1080, h: 1920, hint: "9:16 vertical" },
+];
+
+export const EXPORT_SCALES: { id: ExportScale; label: string; hint: string }[] = [
+  { id: 1, label: "1×", hint: "Native pixels" },
+  { id: 2, label: "2×", hint: "Retina (default)" },
+  { id: 3, label: "3×", hint: "Extra sharp" },
+];
+
+export const FONT_PAIRS: FontPair[] = [
+  {
+    id: "classic",
+    label: "Classic",
+    blurb: "Serif + Figtree",
+    sans: '"Figtree", ui-sans-serif, system-ui, sans-serif',
+    serif: '"Instrument Serif", ui-serif, Georgia, serif',
+    mono: '"IBM Plex Mono", ui-monospace, monospace',
+    poster: '"Syne", ui-sans-serif, system-ui, sans-serif',
+  },
+  {
+    id: "geometric",
+    label: "Geometric",
+    blurb: "DM Sans + Fraunces",
+    sans: '"DM Sans", ui-sans-serif, system-ui, sans-serif',
+    serif: '"Fraunces", ui-serif, Georgia, serif',
+    mono: '"IBM Plex Mono", ui-monospace, monospace',
+    poster: '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
+  },
+  {
+    id: "mono",
+    label: "Mono",
+    blurb: "Plex everywhere",
+    sans: '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
+    serif: '"IBM Plex Serif", ui-serif, Georgia, serif',
+    mono: '"IBM Plex Mono", ui-monospace, monospace',
+    poster: '"IBM Plex Mono", ui-monospace, monospace',
+  },
 ];
 
 export const PALETTES: CardPalette[] = [
@@ -76,6 +119,8 @@ export const TEMPLATES: TemplateMeta[] = [
   { id: "quiet", label: "Quiet", blurb: "Space and ink" },
   { id: "ledger", label: "Ledger", blurb: "Two columns" },
   { id: "frame", label: "Frame", blurb: "Screenshot hero" },
+  { id: "signal", label: "Signal", blurb: "Accent bar" },
+  { id: "marquee", label: "Marquee", blurb: "Oversized name" },
 ];
 
 export const PRESETS: { id: string; label: string; doc: Partial<CardDoc> }[] = [
@@ -84,12 +129,13 @@ export const PRESETS: { id: string; label: string; doc: Partial<CardDoc> }[] = [
     label: "LaunchCard",
     doc: {
       name: "LaunchCard",
-      tagline: "Launch assets that look expensive. Typed in the browser. Nothing leaves the machine.",
+      tagline:
+        "Launch assets that look expensive. Typed in the browser. Nothing leaves the machine.",
       handle: "you",
       url: "launchcard.app",
       stats: [
         { id: "s1", label: "APIs", value: "0" },
-        { id: "s2", label: "templates", value: "8" },
+        { id: "s2", label: "templates", value: "10" },
         { id: "s3", label: "sizes", value: "7" },
       ],
     },
@@ -114,7 +160,8 @@ export const PRESETS: { id: string; label: string; doc: Partial<CardDoc> }[] = [
     label: "Boop",
     doc: {
       name: "Boop",
-      tagline: "An 8 MB Sentry. Errors go straight to your phone. No Slack. No subscription.",
+      tagline:
+        "An 8 MB Sentry. Errors go straight to your phone. No Slack. No subscription.",
       handle: "codestirring",
       url: "boop.dev",
       stats: [
@@ -129,12 +176,13 @@ export const PRESETS: { id: string; label: string; doc: Partial<CardDoc> }[] = [
 export function defaultDoc(): CardDoc {
   return {
     name: "LaunchCard",
-    tagline: "Launch assets that look expensive. Typed in the browser. Nothing leaves the machine.",
+    tagline:
+      "Launch assets that look expensive. Typed in the browser. Nothing leaves the machine.",
     handle: "you",
     url: "launchcard.app",
     stats: [
       { id: "s1", label: "APIs", value: "0" },
-      { id: "s2", label: "templates", value: "8" },
+      { id: "s2", label: "templates", value: "10" },
       { id: "s3", label: "sizes", value: "7" },
     ],
     logoDataUrl: null,
@@ -142,6 +190,9 @@ export function defaultDoc(): CardDoc {
     templateId: "editorial",
     paletteId: "ink",
     sizeId: "og",
+    accent: null,
+    fontPairId: "classic",
+    exportScale: 2,
   };
 }
 
@@ -160,4 +211,14 @@ export function displayHandle(handle: string) {
 
 export function displayUrl(url: string) {
   return url.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+}
+
+export function resolvePalette(paletteId: string, accent: string | null): CardPalette {
+  const base = PALETTES.find((p) => p.id === paletteId) ?? PALETTES[0];
+  if (!accent || !/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(accent)) return base;
+  return { ...base, accent };
+}
+
+export function resolveFontPair(id: string): FontPair {
+  return FONT_PAIRS.find((p) => p.id === id) ?? FONT_PAIRS[0];
 }

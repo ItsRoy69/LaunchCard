@@ -6,7 +6,13 @@ export type TemplateId =
   | "poster"
   | "quiet"
   | "ledger"
-  | "frame";
+  | "frame"
+  | "signal"
+  | "marquee";
+
+export type FontPairId = "classic" | "geometric" | "mono";
+
+export type ExportScale = 1 | 2 | 3;
 
 export type Stat = {
   id: string;
@@ -32,6 +38,16 @@ export type CardPalette = {
   accent: string;
 };
 
+export type FontPair = {
+  id: FontPairId;
+  label: string;
+  blurb: string;
+  sans: string;
+  serif: string;
+  mono: string;
+  poster: string;
+};
+
 export type TemplateMeta = {
   id: TemplateId;
   label: string;
@@ -49,6 +65,10 @@ export type CardDoc = {
   templateId: TemplateId;
   paletteId: string;
   sizeId: string;
+  /** null = use palette accent */
+  accent: string | null;
+  fontPairId: FontPairId;
+  exportScale: ExportScale;
 };
 
 export type LayoutMode = "banner" | "landscape" | "portrait";
