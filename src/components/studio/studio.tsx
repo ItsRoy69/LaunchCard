@@ -102,8 +102,11 @@ export function Studio() {
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const filename = (sizeId = doc.sizeId) =>
-    `${slugify(doc.name)}-${sizeId}-${doc.templateId}.png`;
+  const filename = (sizeId = doc.sizeId) => {
+    const scale = doc.exportScale === 1 || doc.exportScale === 3 ? doc.exportScale : 2;
+    const scaleSuffix = scale === 2 ? "" : `@${scale}x`;
+    return `${slugify(doc.name)}-${sizeId}-${doc.templateId}${scaleSuffix}.png`;
+  };
 
   const exportOne = async (sizeId?: string) => {
     await ensureCardFonts();
@@ -115,7 +118,11 @@ export function Studio() {
     try {
       const blob = await exportOne();
       downloadBlob(blob, filename());
-      trackEvent("export_png", { size: doc.sizeId, template: doc.templateId });
+      trackEvent("export_png", {
+        size: doc.sizeId,
+        template: doc.templateId,
+        scale: doc.exportScale,
+      });
       toast.success("PNG saved");
     } catch {
       toast.error("Could not export PNG");
@@ -140,7 +147,11 @@ export function Studio() {
         try {
           const item = new ClipboardItem({ "image/png": blob });
           await navigator.clipboard.write([item]);
-          trackEvent("copy_image", { size: doc.sizeId, template: doc.templateId });
+          trackEvent("copy_image", {
+            size: doc.sizeId,
+            template: doc.templateId,
+            scale: doc.exportScale,
+          });
           toast.success("Copied to clipboard");
           return;
         } catch {
@@ -149,7 +160,12 @@ export function Studio() {
       }
 
       downloadBlob(blob, filename());
-      trackEvent("copy_image", { size: doc.sizeId, template: doc.templateId, fallback: true });
+      trackEvent("copy_image", {
+        size: doc.sizeId,
+        template: doc.templateId,
+        scale: doc.exportScale,
+        fallback: true,
+      });
       toast.message("Clipboard blocked", {
         description: "PNG downloaded instead. You can paste from Downloads.",
       });
@@ -207,7 +223,11 @@ export function Studio() {
       }
       const pack = await zipBlobs(files);
       downloadBlob(pack, `${slugify(doc.name)}-launch-assets.zip`);
-      trackEvent("export_pack", { template: doc.templateId, count: total });
+      trackEvent("export_pack", {
+        template: doc.templateId,
+        count: total,
+        scale: doc.exportScale,
+      });
       toast.success("Launch asset pack saved", { id: toastId });
     } catch {
       toast.error("Pack export failed", { id: toastId });
