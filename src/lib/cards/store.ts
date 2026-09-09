@@ -2,20 +2,23 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { clearAssets, getAsset, putAsset } from "./asset-db";
 import { defaultDoc, PRESETS } from "./catalog";
-import type { CardDoc, Stat, TemplateId } from "./types";
+import type { CardDoc, ExportScale, FontPairId, Stat, TemplateId } from "./types";
 
 const HISTORY_LIMIT = 40;
+
+type SectionId = "product" | "stats" | "marks" | "style";
 
 type Actions = {
   patch: (partial: Partial<CardDoc>) => void;
   setStat: (id: string, partial: Partial<Stat>) => void;
   addStat: () => void;
   removeStat: (id: string) => void;
+  moveStat: (id: string, dir: -1 | 1) => void;
+  duplicateStat: (id: string) => void;
+  resetSection: (section: SectionId) => void;
   loadPreset: (id: string) => void;
   reset: () => void;
-  /** Apply a shared draft (from URL hash). Clears images. */
   applyShare: (partial: Partial<CardDoc>) => void;
-  /** Wipe localStorage + IndexedDB and reset to defaults. */
   clearAllData: () => void;
   undo: () => void;
   redo: () => void;
@@ -51,6 +54,9 @@ function snapshotDoc(s: CardDoc): CardDoc {
     templateId: s.templateId,
     paletteId: s.paletteId,
     sizeId: s.sizeId,
+    accent: s.accent,
+    fontPairId: s.fontPairId,
+    exportScale: s.exportScale,
   };
 }
 
@@ -141,6 +147,9 @@ export const useCardStore = create<Store>()(
           templateId: doc.templateId,
           paletteId: doc.paletteId,
           sizeId: doc.sizeId,
+          accent: doc.accent,
+          fontPairId: doc.fontPairId,
+          exportScale: doc.exportScale,
         });
       };
 
@@ -186,6 +195,59 @@ export const useCardStore = create<Store>()(
           if (s.stats.length <= 1) return;
           pushPast(snapshotDoc(s));
           set({ stats: s.stats.filter((st) => st.id !== id) });
+        },
+
+        moveStat: (id, dir) => {
+          commitTextHistory();
+          const s = get();
+          const i = s.stats.findIndex((st) => st.id === id);
+          if (i < 0) return;
+          const j = i + dir;
+          if (j < 0 || j >= s.stats.length) return;
+          pushPast(snapshotDoc(s));
+          const stats = s.stats.slice();
+          const [row] = stats.splice(i, 1);
+          stats.splice(j, 0, row);
+          set({ stats });
+        },
+
+        duplicateStat: (id) => {
+          commitTextHistory();
+          const s = get();
+          if (s.stats.length >= 4) return;
+          const src = s.stats.find((st) => st.id === id);
+          if (!src) return;
+          pushPast(snapshotDoc(s));
+          set({
+            stats: [
+              ...s.stats,
+              { id: newStat().id, label: src.label, value: src.value },
+            ],
+          });
+        },
+
+        resetSection: (section) => {
+          commitTextHistory();
+          pushPast(snapshotDoc(get()));
+          const d = defaultDoc();
+          if (section === "product") {
+            set({ name: d.name, tagline: d.tagline, handle: d.handle, url: d.url });
+          } else if (section === "stats") {
+            set({ stats: d.stats.map((st) => ({ ...st })) });
+          } else if (section === "marks") {
+            void putAsset("logo", null);
+            void putAsset("shot", null);
+            set({ logoDataUrl: null, shotDataUrl: null });
+          } else if (section === "style") {
+            set({
+              templateId: d.templateId,
+              paletteId: d.paletteId,
+              sizeId: d.sizeId,
+              accent: null,
+              fontPairId: d.fontPairId,
+              exportScale: d.exportScale,
+            });
+          }
         },
 
         loadPreset: (id) => {
@@ -273,6 +335,10 @@ export const useCardStore = create<Store>()(
           const next: Partial<CardDoc> = {};
           if (!cur.logoDataUrl && logo) next.logoDataUrl = logo;
           if (!cur.shotDataUrl && shot) next.shotDataUrl = shot;
+          // Migrate older persisted docs missing new fields
+          if (cur.accent === undefined) next.accent = null;
+          if (!cur.fontPairId) next.fontPairId = "classic";
+          if (!cur.exportScale) next.exportScale = 2;
           if (Object.keys(next).length) set(next);
         },
       };
@@ -289,6 +355,9 @@ export const useCardStore = create<Store>()(
         templateId: s.templateId,
         paletteId: s.paletteId,
         sizeId: s.sizeId,
+        accent: s.accent,
+        fontPairId: s.fontPairId,
+        exportScale: s.exportScale,
       }),
     },
   ),
@@ -306,5 +375,8 @@ export function selectDoc(s: Store): CardDoc {
     templateId: s.templateId as TemplateId,
     paletteId: s.paletteId,
     sizeId: s.sizeId,
+    accent: s.accent ?? null,
+    fontPairId: (s.fontPairId as FontPairId) || "classic",
+    exportScale: (s.exportScale as ExportScale) || 2,
   };
 }
