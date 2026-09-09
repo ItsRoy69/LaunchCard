@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState, type DragEvent } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import { ImagePlus, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { PALETTES, PRESETS } from "@/lib/cards/catalog";
 import { fileToDataUrl } from "@/lib/cards/image";
-import { fetchPageViewTotal } from "@/lib/cards/views";
 import { useCardStore } from "@/lib/cards/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,14 +97,6 @@ function DropSlot({
   );
 }
 
-function formatVisits(n: number) {
-  try {
-    return new Intl.NumberFormat(undefined, { notation: "compact" }).format(n);
-  } catch {
-    return String(n);
-  }
-}
-
 export function FieldPanel() {
   const name = useCardStore((s) => s.name);
   const tagline = useCardStore((s) => s.tagline);
@@ -123,23 +114,8 @@ export function FieldPanel() {
   const loadPreset = useCardStore((s) => s.loadPreset);
   const reset = useCardStore((s) => s.reset);
   const clearAllData = useCardStore((s) => s.clearAllData);
-  const [visits, setVisits] = useState<number | null>(null);
 
   const frameNeedsShot = templateId === "frame" && !shotDataUrl;
-
-  useEffect(() => {
-    let cancelled = false;
-    // Delay slightly so the session POST can land first.
-    const t = window.setTimeout(() => {
-      void fetchPageViewTotal().then((n) => {
-        if (!cancelled && n != null) setVisits(n);
-      });
-    }, 400);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(t);
-    };
-  }, []);
 
   const onClearData = () => {
     const ok = window.confirm(
@@ -344,14 +320,9 @@ export function FieldPanel() {
       <section className="space-y-3 pb-4">
         <p className="text-xs font-medium tracking-wide text-muted">Privacy</p>
         <p className="text-xs leading-relaxed text-subtle">
-          Drafts stay on this device. Card content is never uploaded. Anonymous page views are counted
-          for product stats only.
+          Drafts stay on this device. Card content is never uploaded. Anonymous usage analytics run
+          for product improvement only (dashboards, not shown here).
         </p>
-        {visits != null ? (
-          <p className="font-mono text-xs text-muted" title="Lifetime page views (once per browser tab)">
-            {formatVisits(visits)} visits
-          </p>
-        ) : null}
         <button
           type="button"
           onClick={onClearData}
